@@ -1,13 +1,46 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useEffect } from "react";
+import MainLayout from "@/layouts/MainLayout";
+import HeroSection from "@/components/HeroSection";
+import FeaturedCourses from "@/components/FeaturedCourses";
+import Features from "@/components/Features";
+import Testimonials from "@/components/Testimonials";
+import CTASection from "@/components/CTASection";
 
 const Index = () => {
+  useEffect(() => {
+    const handleImageLoad = () => {
+      document.querySelectorAll(".blur-load").forEach((div) => {
+        const img = div.querySelector("img");
+        
+        function loaded() {
+          div.classList.add("loaded");
+        }
+        
+        if (img?.complete) {
+          loaded();
+        } else {
+          img?.addEventListener("load", loaded);
+        }
+      });
+    };
+    
+    handleImageLoad();
+    window.addEventListener("load", handleImageLoad);
+    
+    return () => {
+      window.removeEventListener("load", handleImageLoad);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <MainLayout>
+      <HeroSection />
+      <FeaturedCourses />
+      <Features />
+      <Testimonials />
+      <CTASection />
+    </MainLayout>
   );
 };
 
