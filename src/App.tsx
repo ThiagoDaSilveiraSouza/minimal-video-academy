@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Courses from "./pages/Courses";
+import CoursePage from "./pages/CoursePage";
 import Instructors from "./pages/Instructors";
 import Plans from "./pages/Plans";
 import Terms from "./pages/Terms";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/registro" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/cursos" element={<Courses />} />
+          <Route path="/curso/:courseId" element={<CoursePage />} />
           <Route path="/instrutores" element={<Instructors />} />
           <Route path="/planos" element={<Plans />} />
           <Route path="/termos" element={<Terms />} />

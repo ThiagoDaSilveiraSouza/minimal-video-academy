@@ -113,9 +113,11 @@ const CourseCard = ({ course }: { course: typeof coursesData[0] }) => {
         </div>
       </CardContent>
       <CardFooter className="p-4">
-        <Button className="w-full" variant="default">
-          <Play className="w-4 h-4 mr-2" /> Ver curso
-        </Button>
+        <Link to={`/curso/${course.id}`} className="w-full">
+          <Button className="w-full" variant="default">
+            <Play className="w-4 h-4 mr-2" /> Ver curso
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );
