@@ -1,81 +1,15 @@
 
+import { useEffect, useState } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Star, Play } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getAllCourses, type Course } from "@/services/courseService";
+import { useQuery } from "@tanstack/react-query";
 
-const coursesData = [
-  {
-    id: 1,
-    title: "Desenvolvimento Web Completo",
-    description: "Aprenda HTML, CSS, JavaScript, React, Node.js e mais",
-    instructor: "João Silva",
-    rating: 4.8,
-    students: 1253,
-    duration: "40 horas",
-    level: "Iniciante",
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: 2,
-    title: "Marketing Digital",
-    description: "Domine estratégias de SEO, mídias sociais e tráfego pago",
-    instructor: "Ana Costa",
-    rating: 4.9,
-    students: 987,
-    duration: "32 horas",
-    level: "Intermediário",
-    image: "https://images.unsplash.com/photo-1557838923-2985c318be48?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: 3,
-    title: "Excel Avançado",
-    description: "Fórmulas avançadas, dashboards e automação com VBA",
-    instructor: "Carlos Mendes",
-    rating: 4.7,
-    students: 785,
-    duration: "24 horas",
-    level: "Avançado",
-    image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: 4,
-    title: "Produtividade e Gestão do Tempo",
-    description: "Técnicas e métodos para otimizar seu tempo e produtividade",
-    instructor: "Mariana Alves",
-    rating: 4.6,
-    students: 632,
-    duration: "18 horas",
-    level: "Todos os níveis",
-    image: "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: 5,
-    title: "Introdução à Inteligência Artificial",
-    description: "Conceitos fundamentais de IA, machine learning e aplicações",
-    instructor: "Ricardo Lopes",
-    rating: 4.9,
-    students: 1089,
-    duration: "36 horas",
-    level: "Intermediário",
-    image: "https://images.unsplash.com/photo-1591453089816-0fbb971b454c?q=80&w=500&auto=format&fit=crop"
-  },
-  {
-    id: 6,
-    title: "Fotografia para Iniciantes",
-    description: "Aprenda composição, iluminação e edição de imagens",
-    instructor: "Luciana Ferreira",
-    rating: 4.8,
-    students: 845,
-    duration: "28 horas",
-    level: "Iniciante",
-    image: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?q=80&w=500&auto=format&fit=crop"
-  }
-];
-
-const CourseCard = ({ course }: { course: typeof coursesData[0] }) => {
+const CourseCard = ({ course }: { course: Course }) => {
   return (
     <Card className="overflow-hidden h-full transition-all hover:shadow-md">
       <div className="relative aspect-video overflow-hidden">
@@ -124,6 +58,19 @@ const CourseCard = ({ course }: { course: typeof coursesData[0] }) => {
 };
 
 const Courses = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const { data: courses = [], isLoading, error } = useQuery({
+    queryKey: ['courses'],
+    queryFn: getAllCourses
+  });
+  
+  // Filtra os cursos com base no termo de busca
+  const filteredCourses = courses.filter(course => 
+    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <MainLayout>
       <div className="pt-28 pb-20 px-6 md:px-12 max-w-7xl mx-auto">
@@ -141,6 +88,8 @@ const Courses = () => {
                 type="text"
                 placeholder="Pesquisar cursos..."
                 className="w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <Button
                 className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md px-3 py-1 h-auto"
@@ -152,11 +101,29 @@ const Courses = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {coursesData.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p>Carregando cursos...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive">Erro ao carregar cursos. Tente novamente mais tarde.</p>
+          </div>
+        ) : (
+          <>
+            {filteredCourses.length === 0 ? (
+              <div className="text-center py-12">
+                <p>Nenhum curso encontrado para "{searchTerm}"</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCourses.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
         <div className="mt-12 text-center">
           <Button size="lg" className="px-8">

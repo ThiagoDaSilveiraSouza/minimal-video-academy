@@ -5,39 +5,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
+  const { register, loading, user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      if (name && email && password) {
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Bem-vindo à plataforma EduPrime.",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Erro ao criar conta",
-          description: "Por favor, preencha todos os campos corretamente.",
-          variant: "destructive",
+    
+    try {
+      // Registra o usuário com email e senha
+      await register(email, password);
+      
+      // Se o usuário for criado com sucesso, salva informações adicionais no Firestore
+      if (user) {
+        await setDoc(doc(db, "users", user.uid), {
+          name,
+          email,
+          createdAt: new Date(),
+          role: "student"
         });
       }
-      setIsLoading(false);
-    }, 1500);
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Erro no registro:", error);
+    }
   };
 
   return (
@@ -154,9 +155,9 @@ const Register = () => {
             <Button 
               type="submit" 
               className="w-full rounded-full py-6" 
-              disabled={isLoading}
+              disabled={loading}
             >
-              {isLoading ? "Criando conta..." : "Criar conta"}
+              {loading ? "Criando conta..." : "Criar conta"}
             </Button>
           </form>
           
