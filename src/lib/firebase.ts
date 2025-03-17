@@ -17,3 +17,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Níveis de acesso da aplicação
+export const ACCESS_LEVELS = {
+  FREE: "free",
+  BASIC: "basic",
+  PREMIUM: "premium",
+  ADMIN: "admin"
+};
+
+// Função para mapear níveis de acesso para valores legíveis
+export const accessLevelNames = {
+  [ACCESS_LEVELS.FREE]: "Gratuito",
+  [ACCESS_LEVELS.BASIC]: "Básico",
+  [ACCESS_LEVELS.PREMIUM]: "Premium",
+  [ACCESS_LEVELS.ADMIN]: "Administrador"
+};

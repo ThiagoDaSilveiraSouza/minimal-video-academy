@@ -4,23 +4,32 @@ import MainLayout from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Star, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Clock, Users, Star, Play, Shield } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { getAllCourses, type Course } from "@/services/courseService";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import { accessLevelNames } from "@/lib/firebase";
 
-const CourseCard = ({ course }: { course: Course }) => {
+const CourseCard = ({ course, canAccess }: { course: Course, canAccess: boolean }) => {
   return (
     <Card className="overflow-hidden h-full transition-all hover:shadow-md">
       <div className="relative aspect-video overflow-hidden">
         <img 
           src={course.image} 
           alt={course.title} 
-          className="w-full h-full object-cover transition-transform hover:scale-105"
+          className={`w-full h-full object-cover transition-transform hover:scale-105 ${!canAccess ? 'opacity-70' : ''}`}
         />
         <div className="absolute top-3 right-3">
           <Badge className="bg-primary/90 hover:bg-primary">{course.level}</Badge>
         </div>
+        {!canAccess && (
+          <div className="absolute top-3 left-3">
+            <Badge variant="secondary" className="bg-slate-800 text-white">
+              <Shield className="w-3 h-3 mr-1" /> {accessLevelNames[course.accessLevel]}
+            </Badge>
+          </div>
+        )}
       </div>
       <CardHeader className="p-4 pb-0">
         <CardTitle className="text-lg font-semibold line-clamp-2">{course.title}</CardTitle>
@@ -48,8 +57,8 @@ const CourseCard = ({ course }: { course: Course }) => {
       </CardContent>
       <CardFooter className="p-4">
         <Link to={`/curso/${course.id}`} className="w-full">
-          <Button className="w-full" variant="default">
-            <Play className="w-4 h-4 mr-2" /> Ver curso
+          <Button className="w-full" variant={canAccess ? "default" : "secondary"}>
+            <Play className="w-4 h-4 mr-2" /> {canAccess ? "Ver curso" : "Detalhes"}
           </Button>
         </Link>
       </CardFooter>
@@ -59,17 +68,39 @@ const CourseCard = ({ course }: { course: Course }) => {
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user, loading, hasAccess } = useAuth();
+  const navigate = useNavigate();
   
   const { data: courses = [], isLoading, error } = useQuery({
     queryKey: ['courses'],
     queryFn: getAllCourses
   });
   
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login", { state: { from: "/cursos" } });
+    }
+  }, [user, loading, navigate]);
+  
   // Filtra os cursos com base no termo de busca
   const filteredCourses = courses.filter(course => 
-    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <p>Carregando...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+  
+  if (!user) {
+    return null; // Não renderiza nada enquanto redireciona
+  }
 
   return (
     <MainLayout>
@@ -118,7 +149,11 @@ const Courses = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCourses.map((course) => (
-                  <CourseCard key={course.id} course={course} />
+                  <CourseCard 
+                    key={course.id} 
+                    course={course} 
+                    canAccess={hasAccess(course.accessLevel)} 
+                  />
                 ))}
               </div>
             )}
