@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { seedDatabase } from "@/utils/seedDatabase";
 import { useAuth } from "@/context/AuthContext";
 import { isUsingFallback } from "@/lib/firebase";
 
@@ -18,18 +17,7 @@ const AdminPanel = () => {
     setError(false);
     
     try {
-      if (isOfflineMode || isUsingFallback) {
-        setError(true);
-        return;
-      }
-      
-      const result = await seedDatabase();
-      
-      if (result) {
-        setSuccess(true);
-      } else {
-        setError(true);
-      }
+      setError(true);
     } catch (err) {
       console.error("Erro:", err);
       setError(true);
@@ -50,31 +38,20 @@ const AdminPanel = () => {
         
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs">Status do Banco:</span>
-          <span className={`text-xs font-medium ${isOfflineMode || isUsingFallback ? 'text-red-500' : 'text-green-500'}`}>
-            {isOfflineMode || isUsingFallback ? 'Offline' : 'Online'}
+          <span className="text-xs font-medium text-blue-500">
+            Modo Demo
           </span>
         </div>
         
         <p className="text-xs text-muted-foreground mb-4">
-          Este painel permite inicializar o banco de dados com dados de exemplo.
+          Aplicação em modo demo com dados locais.
         </p>
         
-        {success && (
-          <Alert className="mb-4 bg-green-50 border-green-200">
-            <AlertTitle className="text-green-800">Sucesso!</AlertTitle>
-            <AlertDescription className="text-green-700 text-xs">
-              Banco de dados inicializado com sucesso.
-            </AlertDescription>
-          </Alert>
-        )}
-        
         {error && (
-          <Alert className="mb-4 bg-red-50 border-red-200" variant="destructive">
-            <AlertTitle>Erro!</AlertTitle>
-            <AlertDescription className="text-xs">
-              {isOfflineMode || isUsingFallback 
-                ? "Operação indisponível no modo offline." 
-                : "Ocorreu um erro ao inicializar o banco de dados."}
+          <Alert className="mb-4 bg-blue-50 border-blue-200">
+            <AlertTitle className="text-blue-800">Modo Demo</AlertTitle>
+            <AlertDescription className="text-blue-700 text-xs">
+              Operações de banco de dados não estão disponíveis no modo demo.
             </AlertDescription>
           </Alert>
         )}
@@ -82,9 +59,9 @@ const AdminPanel = () => {
         <Button 
           onClick={handleSeedDatabase} 
           className="w-full"
-          disabled={loading || isOfflineMode || isUsingFallback}
+          disabled={true}
         >
-          {loading ? "Inicializando..." : "Inicializar Banco de Dados"}
+          Inicializar Banco de Dados (Indisponível)
         </Button>
       </div>
     </div>
