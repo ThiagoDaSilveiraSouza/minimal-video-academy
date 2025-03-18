@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Star, Play, Shield } from "lucide-react";
+import { Clock, Users, Star, Play, Shield, WifiOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAllCourses, type Course } from "@/services/courseService";
 import { useQuery } from "@tanstack/react-query";
@@ -93,7 +94,7 @@ const CourseCard = ({ course, canAccess }: CourseCardPropps) => {
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { user, loading, hasAccess } = useAuth();
+  const { user, loading, hasAccess, isOfflineMode } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -103,6 +104,8 @@ const Courses = () => {
   } = useQuery({
     queryKey: ["courses"],
     queryFn: getAllCourses,
+    retry: 1,
+    staleTime: isOfflineMode ? Infinity : 1000 * 60 * 5, // 5 minutos em modo normal, infinito em modo offline
   });
 
   useEffect(() => {
@@ -141,6 +144,15 @@ const Courses = () => {
             Explore nossa biblioteca completa de cursos ministrados por
             especialistas em suas áreas
           </p>
+          
+          {isOfflineMode && (
+            <div className="mt-4 mx-auto max-w-md bg-amber-50 border border-amber-200 p-3 rounded-md flex items-center gap-2">
+              <WifiOff className="w-4 h-4 text-amber-500" />
+              <p className="text-sm text-amber-700">
+                Modo offline ativado. Alguns recursos estão limitados.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap md:flex-nowrap gap-6 mb-12">

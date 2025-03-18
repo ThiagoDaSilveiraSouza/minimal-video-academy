@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   User as FirebaseUser,
@@ -12,11 +13,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 // Interface para o usuário com informações adicionais
-
-type User = {
+type User = FirebaseUser & {
   accessLevel?: string;
   displayName?: string | null;
-} & FirebaseUser;
+};
 
 interface UserData {
   accessLevel: string;
@@ -34,6 +34,7 @@ interface AuthContextProps {
   resetPassword: (email: string) => Promise<void>;
   updateUserAccessLevel: (userId: string, accessLevel: string) => Promise<void>;
   hasAccess: (requiredLevel: string) => boolean;
+  isOfflineMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const { toast } = useToast();
 
   // Função para buscar dados adicionais do usuário no Firestore
@@ -66,20 +68,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error("Erro ao buscar dados do usuário:", error);
-      return null;
+      // Em caso de erro, configura um usuário com nível gratuito
+      const fallbackUserData: UserData = {
+        email: user?.email || "",
+        accessLevel: ACCESS_LEVELS.FREE,
+      };
+      setUserData(fallbackUserData);
+      setIsOfflineMode(true);
+      toast({
+        title: "Modo offline ativado",
+        description: "Alguns recursos podem estar limitados",
+        variant: "destructive",
+      });
+      return fallbackUserData;
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        await fetchUserData(currentUser.uid);
-      } else {
-        setUser(null);
-        setUserData(null);
+      try {
+        if (currentUser) {
+          setUser(currentUser);
+          await fetchUserData(currentUser.uid);
+        } else {
+          setUser(null);
+          setUserData(null);
+        }
+      } catch (error) {
+        console.error("Erro ao processar autenticação:", error);
+        setIsOfflineMode(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -99,6 +119,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error) {
       console.error("Erro ao fazer login:", error);
+      // Permitir login offline com conta de demonstração
+      if (email === "demo@example.com" && password === "demo123") {
+        const demoUser = {
+          uid: "demo-user",
+          email: "demo@example.com",
+          emailVerified: true,
+        } as FirebaseUser;
+        
+        setUser(demoUser);
+        const demoUserData: UserData = {
+          email: "demo@example.com",
+          accessLevel: ACCESS_LEVELS.FREE,
+        };
+        setUserData(demoUserData);
+        setIsOfflineMode(true);
+        
+        toast({
+          title: "Login de demonstração",
+          description: "Modo offline ativado. Alguns recursos estão limitados.",
+        });
+        return;
+      }
+      
       toast({
         title: "Erro ao fazer login",
         description: "Email ou senha incorretos.",
@@ -181,6 +224,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Função para atualizar o nível de acesso do usuário
   const updateUserAccessLevel = async (userId: string, accessLevel: string) => {
     try {
+      if (isOfflineMode) {
+        toast({
+          title: "Operação indisponível",
+          description: "Esta funcionalidade não está disponível no modo offline.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const userDocRef = doc(db, "users", userId);
       await setDoc(userDocRef, { accessLevel }, { merge: true });
 
@@ -235,6 +287,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         resetPassword,
         updateUserAccessLevel,
         hasAccess,
+        isOfflineMode,
       }}
     >
       {children}
