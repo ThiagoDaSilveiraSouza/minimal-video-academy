@@ -1,22 +1,22 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { 
-  User as FirebaseUser, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  User as FirebaseUser,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, db, ACCESS_LEVELS } from "@/lib/firebase";
 import { useToast } from "@/components/ui/use-toast";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 // Interface para o usuário com informações adicionais
-interface User extends FirebaseUser {
+
+type User = {
   accessLevel?: string;
   displayName?: string | null;
-}
+} & FirebaseUser;
 
 interface UserData {
   accessLevel: string;
@@ -49,16 +49,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const userDocRef = doc(db, "users", uid);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data() as UserData;
         setUserData(userData);
         return userData;
       } else {
         // Se não houver dados do usuário, cria um documento com nível de acesso gratuito
-        const newUserData: UserData = { 
-          email: user?.email || "", 
-          accessLevel: ACCESS_LEVELS.FREE 
+        const newUserData: UserData = {
+          email: user?.email || "",
+          accessLevel: ACCESS_LEVELS.FREE,
         };
         await setDoc(userDocRef, newUserData);
         setUserData(newUserData);
@@ -87,7 +87,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       await fetchUserData(userCredential.user.uid);
       toast({
         title: "Login bem-sucedido!",
@@ -106,18 +110,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (email: string, password: string) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
       // Criar documento do usuário com nível de acesso gratuito
       const userDocRef = doc(db, "users", userCredential.user.uid);
       const userData: UserData = {
         email,
         accessLevel: ACCESS_LEVELS.FREE,
       };
-      
+
       await setDoc(userDocRef, userData);
       setUserData(userData);
-      
+
       toast({
         title: "Conta criada com sucesso!",
         description: "Bem-vindo à plataforma EduPrime.",
@@ -175,11 +183,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const userDocRef = doc(db, "users", userId);
       await setDoc(userDocRef, { accessLevel }, { merge: true });
-      
+
       if (user && user.uid === userId) {
-        setUserData(prev => prev ? { ...prev, accessLevel } : null);
+        setUserData((prev) => (prev ? { ...prev, accessLevel } : null));
       }
-      
+
       toast({
         title: "Nível de acesso atualizado",
         description: `O nível de acesso foi alterado para ${accessLevel}.`,
@@ -198,30 +206,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Função para verificar se o usuário tem um determinado nível de acesso
   const hasAccess = (requiredLevel: string): boolean => {
     if (!user || !userData) return false;
-    
-    const accessLevels = [ACCESS_LEVELS.FREE, ACCESS_LEVELS.BASIC, ACCESS_LEVELS.PREMIUM, ACCESS_LEVELS.ADMIN];
+
+    const accessLevels = [
+      ACCESS_LEVELS.FREE,
+      ACCESS_LEVELS.BASIC,
+      ACCESS_LEVELS.PREMIUM,
+      ACCESS_LEVELS.ADMIN,
+    ];
     const userLevelIndex = accessLevels.indexOf(userData.accessLevel);
     const requiredLevelIndex = accessLevels.indexOf(requiredLevel);
-    
+
     // Se o usuário for admin, tem acesso a tudo
     if (userData.accessLevel === ACCESS_LEVELS.ADMIN) return true;
-    
+
     // Caso contrário, verifica se o nível do usuário é maior ou igual ao nível requerido
     return userLevelIndex >= requiredLevelIndex;
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      userData,
-      loading, 
-      login, 
-      register, 
-      logout, 
-      resetPassword,
-      updateUserAccessLevel,
-      hasAccess
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        userData,
+        loading,
+        login,
+        register,
+        logout,
+        resetPassword,
+        updateUserAccessLevel,
+        hasAccess,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
