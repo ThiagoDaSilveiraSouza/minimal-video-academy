@@ -17,6 +17,7 @@ const AdminPanel = () => {
     setError(false);
     
     try {
+      // Demo mode will always show an error for database operations
       setError(true);
     } catch (err) {
       console.error("Erro:", err);

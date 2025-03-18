@@ -3,20 +3,30 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Definir que estamos usando o modo offline por padrão
-let isUsingFallback = true;
+// Define we're using offline mode by default
+export const isUsingFallback = true;
 
-console.log("Usando aplicação em modo offline");
+console.log("Usando aplicação em modo offline (demo)");
 
-// Inicializa com valores de fallback
-const app = initializeApp({ projectId: 'fallback-project' });
-const auth = {} as any;
-const db = {} as any;
+// Initialize with fallback values
+const firebaseConfig = { 
+  projectId: 'fallback-project',
+  apiKey: 'fallback-key',
+  authDomain: 'fallback-project.firebaseapp.com',
+  storageBucket: 'fallback-project.appspot.com',
+  messagingSenderId: '000000000000',
+  appId: '1:000000000000:web:0000000000000000000000'
+};
 
-// Exporta as variáveis
-export { auth, db, isUsingFallback };
+// Initialize Firebase with fallback config
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// Níveis de acesso da aplicação
+// Export the variables
+export { auth, db };
+
+// Application access levels
 export const ACCESS_LEVELS = {
   FREE: "free",
   BASIC: "basic",
@@ -24,7 +34,7 @@ export const ACCESS_LEVELS = {
   ADMIN: "admin"
 };
 
-// Função para mapear níveis de acesso para valores legíveis
+// Function to map access levels to readable values
 export const accessLevelNames = {
   [ACCESS_LEVELS.FREE]: "Gratuito",
   [ACCESS_LEVELS.BASIC]: "Básico",

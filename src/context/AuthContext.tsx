@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth, ACCESS_LEVELS } from "@/lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth, ACCESS_LEVELS, isUsingFallback } from "@/lib/firebase";
 import { useToast } from "@/components/ui/use-toast";
-import { User, UserData, AuthContextProps } from "@/types/auth";
+import { UserData, AuthContextProps } from "@/types/auth";
 import { 
   fetchUserData,
   loginUser,
@@ -20,70 +19,95 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(isUsingFallback);
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      try {
-        if (currentUser) {
-          setUser(currentUser);
-          const data = await fetchUserData(currentUser.uid, currentUser.email, setIsOfflineMode);
-          setUserData(data);
-        } else {
-          setUser(null);
-          setUserData(null);
-        }
-      } catch (error) {
-        console.error("Erro ao processar autenticação:", error);
-        setIsOfflineMode(true);
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    try {
-      const user = await loginUser(email, password);
-      const userData = await fetchUserData(user.uid, user.email, setIsOfflineMode);
-      setUserData(userData);
-      
-      toast({
-        title: "Login bem-sucedido!",
-        description: "Você foi autenticado com sucesso.",
-      });
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
-      
-      // Allow demo login in offline mode
-      if (email === "demo@example.com" && password === "demo123") {
+    let unsubscribe = () => {};
+    
+    if (isOfflineMode) {
+      setTimeout(() => {
         const demoUser = {
           uid: "demo-user",
           email: "demo@example.com",
           emailVerified: true,
         } as User;
         
-        setUser(demoUser);
-        const demoUserData: UserData = {
-          email: "demo@example.com",
-          accessLevel: ACCESS_LEVELS.FREE,
-        };
-        setUserData(demoUserData);
-        setIsOfflineMode(true);
+        setUser(null);
+        setUserData(null);
+        setLoading(false);
+      }, 500);
+    } else {
+      unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        try {
+          if (currentUser) {
+            setUser(currentUser);
+            const data = await fetchUserData(currentUser.uid, currentUser.email, setIsOfflineMode);
+            setUserData(data);
+          } else {
+            setUser(null);
+            setUserData(null);
+          }
+        } catch (error) {
+          console.error("Erro ao processar autenticação:", error);
+          setIsOfflineMode(true);
+        } finally {
+          setLoading(false);
+        }
+      });
+    }
+
+    return () => unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      if (isOfflineMode) {
+        if (email === "demo@example.com" && password === "demo123") {
+          const demoUser = {
+            uid: "demo-user",
+            email: "demo@example.com",
+            emailVerified: true,
+          } as User;
+          
+          setUser(demoUser);
+          const demoUserData: UserData = {
+            email: "demo@example.com",
+            accessLevel: ACCESS_LEVELS.FREE,
+          };
+          setUserData(demoUserData);
+          
+          toast({
+            title: "Login de demonstração",
+            description: "Modo offline ativado. Alguns recursos estão limitados.",
+          });
+          return;
+        } else {
+          toast({
+            title: "Erro ao fazer login",
+            description: "No modo demo, use email: demo@example.com e senha: demo123",
+            variant: "destructive",
+          });
+          throw new Error("Credenciais inválidas no modo demo");
+        }
+      } else {
+        const user = await loginUser(email, password);
+        const userData = await fetchUserData(user.uid, user.email, setIsOfflineMode);
+        setUserData(userData);
         
         toast({
-          title: "Login de demonstração",
-          description: "Modo offline ativado. Alguns recursos estão limitados.",
+          title: "Login bem-sucedido!",
+          description: "Você foi autenticado com sucesso.",
         });
-        return;
       }
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
       
       toast({
         title: "Erro ao fazer login",
-        description: "Email ou senha incorretos.",
+        description: isOfflineMode ? 
+          "No modo demo, use email: demo@example.com e senha: demo123" :
+          "Email ou senha incorretos.",
         variant: "destructive",
       });
       throw error;
